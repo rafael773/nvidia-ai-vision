@@ -153,35 +153,36 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
                     messages_to_send = [
                         {
                             "role": "system", 
-                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
+                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban singkat, padat, jelas, dan terstruktur dalam Bahasa Indonesia."
                         }
                     ] + st.session_state.messages
 
-                # Panggil API tanpa stream untuk mendapatkan jawaban utuh sekaligus
+                # Panggil API dengan timeout maksimal 7 detik
                 response = client.chat.completions.create(
                     model="meta/llama-3.2-11b-vision-instruct",
                     messages=messages_to_send,
-                    max_tokens=2048,
-                    temperature=0.7,
-                    stream=False  # Diubah menjadi False agar jawaban diambil penuh dulu
+                    max_tokens=1024,
+                    temperature=0.6,
+                    stream=False,
+                    timeout=7.0  # MEMBATASI WAKTU TUNGGU MAKSIMAL 7 DETIK
                 )
                 
                 full_response = response.choices[0].message.content
                 
             except Exception as e:
-                full_response = f"Maaf, terjadi kesalahan: {str(e)}"
-            
-            # Ubah status loading jadi selesai
-            status.update(label="✨ Jev-AI selesai merangkum!", state="complete", expanded=False)
+                # Jika waktu habis atau terjadi error
+                full_response = "Maaf, respon terlalu lama atau server sedang sibuk. Silakan coba tanyakan kembali secara singkat."
 
-        # Fungsi generator untuk mensimulasikan efek mengetik dari teks utuh
+            # Ubah status loading jadi selesai
+            status.update(label="✨ Selesai!", state="complete", expanded=False)
+
+        # Fungsi generator untuk mensimulasikan efek mengetik cepat
         def simulate_typing(text):
-            # Memecah teks per kata agar diketik dengan cepat dan lancar
             for word in text.split(" "):
                 yield word + " "
-                time.sleep(0.04) # Mengatur kecepatan ketikan (semakin kecil angkanya, semakin cepat)
+                time.sleep(0.02) # Kecepatan ketikan dibuat sangat cepat
 
-        # Mengetikkan jawaban utuh secara real-time di layar tanpa terputus
+        # Tampilkan teks ke layar dengan efek ngetik cepat
         typed_response = st.write_stream(simulate_typing(full_response))
 
     # Simpan jawaban AI ke riwayat
