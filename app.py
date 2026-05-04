@@ -73,12 +73,12 @@ st.markdown("""
         border-right: 1px solid #334155;
     }
 
-    /* Sembunyikan footer bawaan Streamlit saja (TOMBOL MENU TETAP MUNCUL) */
+    /* Sembunyikan footer bawaan Streamlit saja */
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Setup API NVIDIA
+# 2. Setup API NVIDIA (API Key sudah terpasang)
 NVIDIA_API_KEY = "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"
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
@@ -131,7 +131,6 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
 
     # 7. Proses Jawaban AI
     with st.chat_message("assistant"):
-        # Status loading keren ala Jev-AI
         with st.status("🔮 Jev-AI sedang berpikir...", expanded=True) as status:
             def generate_ai_response():
                 try:
@@ -150,18 +149,18 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
                             }
                         ]
                     else:
+                        # Mengirimkan riwayat lengkap obrolan agar AI mengingat pembicaraan
                         messages_to_send = [
                             {
                                 "role": "system", 
                                 "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
-                            },
-                            {"role": "user", "content": prompt}
-                        ]
+                            }
+                        ] + st.session_state.messages
 
                     response = client.chat.completions.create(
                         model="meta/llama-3.2-11b-vision-instruct",
                         messages=messages_to_send,
-                        max_tokens=2048,  # Ditambah agar AI tidak macet di tengah jalan
+                        max_tokens=2048,
                         temperature=0.7,
                         stream=True
                     )
@@ -176,8 +175,9 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
             # Menampilkan hasil ketikan streaming secara real-time
             full_response = st.write_stream(generate_ai_response())
             
-            # Ubah status loading jadi selesai saat AI selesai mengetik
+            # Ubah status loading jadi selesai
             status.update(label="✨ Jev-AI selesai menjawab!", state="complete", expanded=False)
 
+    # Simpan jawaban AI ke riwayat
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     st.rerun()
