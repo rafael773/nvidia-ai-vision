@@ -4,30 +4,76 @@ from PIL import Image
 import base64
 import io
 
-# 1. Konfigurasi Halaman (Mobile First)
+# 1. Konfigurasi Halaman (Mobile First & Dark Mode Default)
 st.set_page_config(
-    page_title="jev-ai", 
+    page_title="Jev-AI", 
     page_icon="✨", 
     layout="centered"
 )
 
-# --- CUSTOM CSS AGAR MIRIP GEMINI ---
+# --- CUSTOM CSS PREMIUM ALA GEMINI ADVANCED ---
 st.markdown("""
     <style>
-    /* Mengatur area chat agar tidak terlalu mepet atas */
+    /* Mengubah background utama menjadi gelap elegan */
+    .stApp {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+    
+    /* Mengatur area chat agar pas di tengah */
     .main .block-container {
-        padding-top: 2rem;
-        max-width: 800px;
+        padding-top: 3rem;
+        padding-bottom: 6rem;
+        max-width: 750px;
     }
-    /* Mengatur gaya balon chat */
-    .stChatMessage {
-        border-radius: 15px;
-        padding: 10px;
-        margin-bottom: 10px;
+
+    /* Efek Gradasi Warna untuk Judul Jev-AI */
+    .gradient-text {
+        font-size: 42px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 5px;
     }
-    /* Sembunyikan footer streamlit */
+
+    .sub-text {
+        color: #94a3b8;
+        text-align: center;
+        font-size: 14px;
+        margin-bottom: 30px;
+    }
+
+    /* Styling Balon Chat User */
+    .stChatMessage[data-testid="stChatMessageUser"] {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-radius: 20px 20px 5px 20px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        color: #f1f5f9 !important;
+    }
+
+    /* Styling Balon Chat AI Assistant */
+    .stChatMessage[data-testid="stChatMessageAssistant"] {
+        background-color: #0f172a !important;
+        border: 1px solid #1e3a8a !important;
+        border-radius: 20px 20px 20px 5px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        color: #f8fafc !important;
+    }
+
+    /* Mempercantik tampilan Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #1e293b;
+        border-right: 1px solid #334155;
+    }
+
+    /* Sembunyikan Header dan Footer bawaan Streamlit */
+    header {visibility: hidden;}
     footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -38,33 +84,37 @@ client = OpenAI(
     api_key=NVIDIA_API_KEY
 )
 
-# 3. Inisialisasi Memori Chat (Agar chat tidak hilang saat diketik)
+# 3. Inisialisasi Memori Chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # --- BAGIAN SAMPING (SIDEBAR) UNTUK UPLOAD GAMBAR ---
-# Di Android, ini akan tersembunyi di balik tombol garis tiga (hamburger)
 with st.sidebar:
-    st.title("📁 Lampiran")
-    uploaded_file = st.file_uploader("Tambah gambar untuk dianalisis:", type=["jpg", "jpeg", "png"])
+    st.markdown("<h2 style='color: #3b82f6;'>📁 Lampiran</h2>", unsafe_allow_html=True)
+    st.write("Tambahkan gambar untuk dianalisis oleh AI.")
+    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
+    
     if uploaded_file:
+        st.write("---")
         st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
-        if st.button("Hapus Gambar"):
+        if st.button("🗑️ Hapus Gambar", use_container_width=True):
             uploaded_file = None
             st.rerun()
+            
     st.write("---")
-    st.info("Tips: Di Android, klik ikon ☰ di pojok kiri atas untuk upload gambar.")
+    st.info("💡 Tips Android:\nKlik ikon garis tiga (☰) di pojok kiri atas untuk upload gambar.")
 
-# 4. Header Utama
-st.markdown("<h2 style='text-align: center;'>✨ Pael AI Assistant</h2>", unsafe_allow_html=True)
+# 4. Header Utama dengan Efek Gradasi
+st.markdown('<div class="gradient-text">Jev-AI Assistant</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-text">The next-gen intelligent AI powered by NVIDIA</div>', unsafe_allow_html=True)
 
-# 5. Menampilkan Riwayat Chat ala Gemini
+# 5. Menampilkan Riwayat Chat
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 # 6. Tombol Ketik di Bawah (Chat Input)
-if prompt := st.chat_input("Tanya Pael AI di sini..."):
+if prompt := st.chat_input("Apa yang ingin kamu tanyakan pada Jev-AI?"):
     
     # Simpan chat user ke riwayat
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -76,7 +126,7 @@ if prompt := st.chat_input("Tanya Pael AI di sini..."):
         placeholder = st.empty()
         full_response = ""
         
-        with st.spinner("Sedang berpikir..."):
+        with st.spinner("Jev-AI sedang berpikir..."):
             try:
                 # Fungsi Base64 untuk Gambar
                 def get_base64(file):
@@ -96,7 +146,10 @@ if prompt := st.chat_input("Tanya Pael AI di sini..."):
                     ]
                 else:
                     messages_to_send = [
-                        {"role": "system", "content": "Kamu adalah Pael AI, asisten yang cerdas dan ramah. Berikan jawaban yang sangat jelas dan terstruktur dalam Bahasa Indonesia."},
+                        {
+                            "role": "system", 
+                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan penjelasan yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
+                        },
                         {"role": "user", "content": prompt}
                     ]
 
