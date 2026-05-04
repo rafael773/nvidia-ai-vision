@@ -131,47 +131,53 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
 
     # 7. Proses Jawaban AI
     with st.chat_message("assistant"):
-        def generate_ai_response():
-            try:
-                def get_base64(file):
-                    return base64.b64encode(file.getvalue()).decode()
+        # Status loading keren ala Jev-AI
+        with st.status("🔮 Jev-AI sedang berpikir...", expanded=True) as status:
+            def generate_ai_response():
+                try:
+                    def get_base64(file):
+                        return base64.b64encode(file.getvalue()).decode()
 
-                if uploaded_file:
-                    img_base64 = get_base64(uploaded_file)
-                    messages_to_send = [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt},
-                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
-                            ]
-                        }
-                    ]
-                else:
-                    messages_to_send = [
-                        {
-                            "role": "system", 
-                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
-                        },
-                        {"role": "user", "content": prompt}
-                    ]
+                    if uploaded_file:
+                        img_base64 = get_base64(uploaded_file)
+                        messages_to_send = [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
+                                ]
+                            }
+                        ]
+                    else:
+                        messages_to_send = [
+                            {
+                                "role": "system", 
+                                "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
+                            },
+                            {"role": "user", "content": prompt}
+                        ]
 
-                response = client.chat.completions.create(
-                    model="meta/llama-3.2-11b-vision-instruct",
-                    messages=messages_to_send,
-                    max_tokens=1024,
-                    temperature=0.7,
-                    stream=True
-                )
-                
-                for chunk in response:
-                    if chunk.choices[0].delta.content is not None:
-                        yield chunk.choices[0].delta.content
-                        
-            except Exception as e:
-                yield f"Maaf, terjadi kesalahan: {str(e)}"
+                    response = client.chat.completions.create(
+                        model="meta/llama-3.2-11b-vision-instruct",
+                        messages=messages_to_send,
+                        max_tokens=2048,  # Ditambah agar AI tidak macet di tengah jalan
+                        temperature=0.7,
+                        stream=True
+                    )
+                    
+                    for chunk in response:
+                        if chunk.choices[0].delta.content is not None:
+                            yield chunk.choices[0].delta.content
+                            
+                except Exception as e:
+                    yield f"Maaf, terjadi kesalahan: {str(e)}"
 
-        full_response = st.write_stream(generate_ai_response())
+            # Menampilkan hasil ketikan streaming secara real-time
+            full_response = st.write_stream(generate_ai_response())
+            
+            # Ubah status loading jadi selesai saat AI selesai mengetik
+            status.update(label="✨ Jev-AI selesai menjawab!", state="complete", expanded=False)
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     st.rerun()
