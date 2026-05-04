@@ -11,7 +11,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- CUSTOM CSS PREMIUM ALA GEMINI ADVANCED ---
+# --- CUSTOM CSS PREMIUM & ADVANCED ALA GEMINI ADVANCED ---
 st.markdown("""
     <style>
     /* Mengubah background utama menjadi gelap elegan */
@@ -20,10 +20,10 @@ st.markdown("""
         color: #f8fafc;
     }
     
-    /* Mengatur area chat agar pas di tengah */
+    /* Mengatur area chat agar pas di tengah dan tidak terlalu mepet bawah */
     .main .block-container {
         padding-top: 3rem;
-        padding-bottom: 6rem;
+        padding-bottom: 7rem;
         max-width: 750px;
     }
 
@@ -64,14 +64,52 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         color: #f8fafc !important;
     }
-
-    /* Mempercantik tampilan Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #1e293b;
-        border-right: 1px solid #334155;
+    
+    /* --- STYLING KHUSUS UNTUK TOMBOL GAMBAR DI BAWAH --- */
+    
+    /* Membuat kotak container untuk input bagian bawah */
+    [data-testid="stForm"] {
+        background-color: #111827;
+        border: 1px solid #334155;
+        border-radius: 30px;
+        padding: 5px 20px;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    
+    /* Sembunyikan garis bawaan input text */
+    [data-testid="stForm"] .stTextInput input {
+        border: none !important;
+        background-color: transparent !important;
+        color: #f8fafc !important;
+        padding-left: 0px !important;
+    }
+    
+    /* Ubah tampilan tombol upload gambar jadi ikon kecil */
+    [data-testid="stForm"] .stFileUploader section {
+        padding: 0px !important;
+        border: none !important;
+        background-color: transparent !important;
+    }
+    
+    /* Sembunyikan teks-teks bawaan upload file */
+    [data-testid="stForm"] .stFileUploader label,
+    [data-testid="stForm"] .stFileUploader small,
+    [data-testid="stForm"] .stFileUploader .st-emotion-cache-up8up8 {
+        display: none !important;
+    }
+    
+    /* Mengatur jarak ikon kamera agar pas di samping */
+    [data-testid="stForm"] .stFileUploader div[role="button"] {
+        font-size: 20px;
+        color: #94a3b8;
+        padding: 5px 10px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
     }
 
-    /* Sembunyikan Header dan Footer bawaan Streamlit */
+    /* Sembunyikan Sidebar, Header, Footer */
+    [data-testid="stSidebar"] {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -88,22 +126,6 @@ client = OpenAI(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- BAGIAN SAMPING (SIDEBAR) UNTUK UPLOAD GAMBAR ---
-with st.sidebar:
-    st.markdown("<h2 style='color: #3b82f6;'>📁 Lampiran</h2>", unsafe_allow_html=True)
-    st.write("Tambahkan gambar untuk dianalisis oleh AI.")
-    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
-    
-    if uploaded_file:
-        st.write("---")
-        st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
-        if st.button("🗑️ Hapus Gambar", use_container_width=True):
-            uploaded_file = None
-            st.rerun()
-            
-    st.write("---")
-    st.info("💡 Tips Android:\nKlik ikon garis tiga (☰) di pojok kiri atas untuk upload gambar.")
-
 # 4. Header Utama dengan Efek Gradasi
 st.markdown('<div class="gradient-text">Jev-AI Assistant</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-text">The next-gen intelligent AI powered by NVIDIA</div>', unsafe_allow_html=True)
@@ -113,20 +135,46 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 6. Tombol Ketik di Bawah (Chat Input)
-if prompt := st.chat_input("Apa yang ingin kamu tanyakan pada Jev-AI?"):
+# --- BAGIAN BAWAH ALA GEMINI (GAMBAR DISAMPING TEKS) ---
+
+# Buat form agar tombol upload dan teks bisa sejajar dalam satu baris
+with st.form("gemini_form", clear_on_submit=True):
+    col1, col2 = st.columns([1, 10])
+    
+    with col1:
+        # Upload gambar dalam bentuk ikon (CSS yang ngatur)
+        uploaded_file = st.file_uploader("📷", type=["jpg", "jpeg", "png"])
+        
+    with col2:
+        # Kotak input teks
+        user_prompt = st.text_input("", placeholder="Tanya Jev-AI di sini...", key="user_input")
+        
+    # Tombol submit tersembunyi (bisa juga tekan enter)
+    submit_button = st.form_submit_button("Kirim", use_container_width=False)
+
+# Cek apakah ada gambar yang sedang dipilih, tampilkan di atas kotak ketik
+if uploaded_file:
+    st.write("---")
+    col1, col2 = st.columns([2, 10])
+    with col1:
+        st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
+    with col2:
+        if st.button("🗑️ Hapus Gambar"):
+            uploaded_file = None
+            st.rerun()
+
+# 6. Proses Jawaban AI saat Submit
+if submit_button and user_prompt:
     
     # Simpan chat user ke riwayat
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(user_prompt)
 
     # 7. Proses Jawaban AI
     with st.chat_message("assistant"):
-        placeholder = st.empty()
-        full_response = ""
-        
-        with st.spinner("Jev-AI sedang berpikir..."):
+        # Kita gunakan generator untuk efek streaming
+        def generate_ai_response():
             try:
                 # Fungsi Base64 untuk Gambar
                 def get_base64(file):
@@ -139,7 +187,7 @@ if prompt := st.chat_input("Apa yang ingin kamu tanyakan pada Jev-AI?"):
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": prompt},
+                                {"type": "text", "text": user_prompt},
                                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
                             ]
                         }
@@ -150,23 +198,32 @@ if prompt := st.chat_input("Apa yang ingin kamu tanyakan pada Jev-AI?"):
                             "role": "system", 
                             "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan penjelasan yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
                         },
-                        {"role": "user", "content": prompt}
+                        {"role": "user", "content": user_prompt}
                     ]
 
-                # Panggil API NVIDIA (Llama 3.2 Vision)
+                # Panggil API NVIDIA (Llama 3.2 Vision) dengan streaming
                 response = client.chat.completions.create(
                     model="meta/llama-3.2-11b-vision-instruct",
                     messages=messages_to_send,
                     max_tokens=1024,
-                    temperature=0.7
+                    temperature=0.7,
+                    stream=True  # Mengaktifkan streaming teks
                 )
                 
-                full_response = response.choices[0].message.content
-                placeholder.markdown(full_response)
-                
+                # Mengirim potongan teks satu per satu
+                for chunk in response:
+                    if chunk.choices[0].delta.content is not None:
+                        yield chunk.choices[0].delta.content
+                        
             except Exception as e:
-                full_response = f"Maaf, terjadi kesalahan: {str(e)}"
-                placeholder.error(full_response)
+                yield f"Maaf, terjadi kesalahan: {str(e)}"
 
-    # Simpan jawaban AI ke riwayat
+        # Jalankan efek ngetik secara real-time di layar
+        full_response = st.write_stream(generate_ai_response())
+
+    # Simpan jawaban AI ke riwayat setelah selesai mengetik
     st.session_state.messages.append({"role": "assistant", "content": full_response})
+    
+    # Hapus file upload setelah selesai proses agar tidak dobel
+    uploaded_file = None
+    st.rerun()
