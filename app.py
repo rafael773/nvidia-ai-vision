@@ -104,13 +104,19 @@ with st.sidebar:
         if st.button("🗑️ Hapus Gambar", use_container_width=True):
             st.session_state["sidebar_uploader"] = None
             st.rerun()
-            
-    st.write("---")
-    st.info("💡 Tips Android:\nKlik ikon garis tiga (☰) di pojok kiri atas untuk upload gambar.")
 
 # 4. Header Utama
 st.markdown('<div class="gradient-text">Jev-AI Assistant</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-text">The next-gen intelligent AI powered by NVIDIA</div>', unsafe_allow_html=True)
+
+# Petunjuk penggunaan menu samping di komputer dan HP
+st.markdown("""
+<div style='text-align: center; margin-top: -15px; margin-bottom: 25px;'>
+    <span style='background-color: #1e293b; color: #94a3b8; padding: 5px 12px; border-radius: 12px; font-size: 12px;'>
+        ℹ️ Klik tombol menu <b>☰</b> atau panah di pojok kiri atas untuk upload gambar
+    </span>
+</div>
+""", unsafe_allow_html=True)
 
 # 5. Menampilkan Riwayat Chat
 for message in st.session_state.messages:
