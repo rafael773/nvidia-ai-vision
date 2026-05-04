@@ -3,6 +3,7 @@ from openai import OpenAI
 from PIL import Image
 import base64
 import io
+import time
 
 # 1. Konfigurasi Halaman (Mobile First & Dark Mode Default)
 st.set_page_config(
@@ -78,7 +79,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Setup API NVIDIA (API Key sudah terpasang)
+# 2. Setup API NVIDIA
 NVIDIA_API_KEY = "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"
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
@@ -132,52 +133,57 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
     # 7. Proses Jawaban AI
     with st.chat_message("assistant"):
         with st.status("🔮 Jev-AI sedang berpikir...", expanded=True) as status:
-            def generate_ai_response():
-                try:
-                    def get_base64(file):
-                        return base64.b64encode(file.getvalue()).decode()
+            full_response = ""
+            try:
+                def get_base64(file):
+                    return base64.b64encode(file.getvalue()).decode()
 
-                    if uploaded_file:
-                        img_base64 = get_base64(uploaded_file)
-                        messages_to_send = [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "text", "text": prompt},
-                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
-                                ]
-                            }
-                        ]
-                    else:
-                        # Mengirimkan riwayat lengkap obrolan agar AI mengingat pembicaraan
-                        messages_to_send = [
-                            {
-                                "role": "system", 
-                                "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
-                            }
-                        ] + st.session_state.messages
+                if uploaded_file:
+                    img_base64 = get_base64(uploaded_file)
+                    messages_to_send = [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
+                            ]
+                        }
+                    ]
+                else:
+                    messages_to_send = [
+                        {
+                            "role": "system", 
+                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
+                        }
+                    ] + st.session_state.messages
 
-                    response = client.chat.completions.create(
-                        model="meta/llama-3.2-11b-vision-instruct",
-                        messages=messages_to_send,
-                        max_tokens=2048,
-                        temperature=0.7,
-                        stream=True
-                    )
-                    
-                    for chunk in response:
-                        if chunk.choices[0].delta.content is not None:
-                            yield chunk.choices[0].delta.content
-                            
-                except Exception as e:
-                    yield f"Maaf, terjadi kesalahan: {str(e)}"
-
-            # Menampilkan hasil ketikan streaming secara real-time
-            full_response = st.write_stream(generate_ai_response())
+                # Panggil API tanpa stream untuk mendapatkan jawaban utuh sekaligus
+                response = client.chat.completions.create(
+                    model="meta/llama-3.2-11b-vision-instruct",
+                    messages=messages_to_send,
+                    max_tokens=2048,
+                    temperature=0.7,
+                    stream=False  # Diubah menjadi False agar jawaban diambil penuh dulu
+                )
+                
+                full_response = response.choices[0].message.content
+                
+            except Exception as e:
+                full_response = f"Maaf, terjadi kesalahan: {str(e)}"
             
             # Ubah status loading jadi selesai
-            status.update(label="✨ Jev-AI selesai menjawab!", state="complete", expanded=False)
+            status.update(label="✨ Jev-AI selesai merangkum!", state="complete", expanded=False)
+
+        # Fungsi generator untuk mensimulasikan efek mengetik dari teks utuh
+        def simulate_typing(text):
+            # Memecah teks per kata agar diketik dengan cepat dan lancar
+            for word in text.split(" "):
+                yield word + " "
+                time.sleep(0.04) # Mengatur kecepatan ketikan (semakin kecil angkanya, semakin cepat)
+
+        # Mengetikkan jawaban utuh secara real-time di layar tanpa terputus
+        typed_response = st.write_stream(simulate_typing(full_response))
 
     # Simpan jawaban AI ke riwayat
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    st.session_state.messages.append({"role": "assistant", "content": typed_response})
     st.rerun()
