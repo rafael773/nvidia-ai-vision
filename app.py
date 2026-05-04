@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+from PIL import Image
 import base64
 import io
 
@@ -65,58 +66,11 @@ st.markdown("""
         color: #f8fafc !important;
         margin-bottom: 15px !important;
     }
-    
-    /* Kotak input form di bawah yang menyatu */
-    div[data-testid="stForm"] {
-        background-color: #1e293b !important;
-        border: 1px solid #334155 !important;
-        border-radius: 25px !important;
-        padding: 5px 15px !important;
-        box-shadow: 0 4px 12px rgb(0 0 0 / 0.3) !important;
-        margin-top: 20px;
-    }
 
-    div[data-testid="stForm"] [data-testid="column"] {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Hilangkan border bawaan input text */
-    div[data-testid="stForm"] input {
-        background-color: transparent !important;
-        border: none !important;
-        color: #f8fafc !important;
-        padding: 10px 0px !important;
-    }
-
-    /* Hilangkan background tombol kirim agar minimalis */
-    div[data-testid="stForm"] button[type="submit"] {
-        background-color: transparent !important;
-        border: none !important;
-        color: #3b82f6 !important;
-        font-weight: bold;
-        font-size: 16px;
-    }
-    
-    /* Sembunyikan garis dan teks bawaan file uploader */
-    div[data-testid="stForm"] .stFileUploader section {
-        padding: 0px !important;
-        border: none !important;
-        background-color: transparent !important;
-    }
-    div[data-testid="stForm"] .stFileUploader label,
-    div[data-testid="stForm"] .stFileUploader small,
-    div[data-testid="stForm"] .stFileUploader div[role="status"] {
-        display: none !important;
-    }
-    div[data-testid="stForm"] .stFileUploader div[role="button"] {
-        font-size: 22px !important;
-        color: #94a3b8 !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0px !important;
-        margin: 0px !important;
+    /* Mempercantik tampilan Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #1e293b;
+        border-right: 1px solid #334155;
     }
 
     /* Sembunyikan Header dan Footer bawaan Streamlit */
@@ -136,6 +90,24 @@ client = OpenAI(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# --- BAGIAN SAMPING (SIDEBAR) UNTUK UPLOAD GAMBAR ---
+with st.sidebar:
+    st.markdown("<h2 style='color: #3b82f6;'>📁 Lampiran</h2>", unsafe_allow_html=True)
+    st.write("Tambahkan gambar untuk dianalisis oleh AI.")
+    
+    # Upload file ditaruh di sini agar tidak mengganggu kotak chat bawah
+    uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], key="sidebar_uploader")
+    
+    if uploaded_file:
+        st.write("---")
+        st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
+        if st.button("🗑️ Hapus Gambar", use_container_width=True):
+            st.session_state["sidebar_uploader"] = None
+            st.rerun()
+            
+    st.write("---")
+    st.info("💡 Tips Android:\nKlik ikon garis tiga (☰) di pojok kiri atas untuk upload gambar.")
+
 # 4. Header Utama
 st.markdown('<div class="gradient-text">Jev-AI Assistant</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-text">The next-gen intelligent AI powered by NVIDIA</div>', unsafe_allow_html=True)
@@ -145,41 +117,13 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- BAGIAN BAWAH UNTUK INPUT (TIDAK MELAYANG / TIDAK MENUTUPI) ---
-
-with st.form("gemini_chat_form", clear_on_submit=True):
-    # col1 untuk tombol +, col2 untuk teks ketik, col3 untuk tombol kirim
-    c1, c2, c3 = st.columns([1, 8, 1.5])
-    
-    with c1:
-        # Tombol + untuk upload gambar
-        uploaded_file = st.file_uploader("➕", type=["jpg", "jpeg", "png"])
-        
-    with c2:
-        user_prompt = st.text_input("", placeholder="Tanya Jev-AI di sini...", label_visibility="collapsed")
-        
-    with c3:
-        submit_button = st.form_submit_button("Kirim")
-
-# Jika ada gambar yang dipilih, pratinjau muncul di bawah kotak ketik dengan rapi
-if uploaded_file:
-    st.write("---")
-    col_img, col_btn = st.columns([2, 8])
-    with col_img:
-        st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
-    with col_btn:
-        st.write("")
-        if st.button("🗑️ Hapus Gambar"):
-            uploaded_file = None
-            st.rerun()
-
-# 6. Proses Jawaban AI saat Tombol Kirim Ditekan
-if submit_button and user_prompt:
+# 6. Kotak Input Bawaan Streamlit (Sangat Stabil)
+if prompt := st.chat_input("Tanya Jev-AI di sini..."):
     
     # Simpan chat user ke riwayat
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(user_prompt)
+        st.markdown(prompt)
 
     # 7. Proses Jawaban AI
     with st.chat_message("assistant"):
@@ -188,14 +132,14 @@ if submit_button and user_prompt:
                 def get_base64(file):
                     return base64.b64encode(file.getvalue()).decode()
 
-                # Cek apakah ada gambar yang diupload
+                # Cek apakah ada gambar yang diupload di sidebar
                 if uploaded_file:
                     img_base64 = get_base64(uploaded_file)
                     messages_to_send = [
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": user_prompt},
+                                {"type": "text", "text": prompt},
                                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"}}
                             ]
                         }
@@ -206,7 +150,7 @@ if submit_button and user_prompt:
                             "role": "system", 
                             "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
                         },
-                        {"role": "user", "content": user_prompt}
+                        {"role": "user", "content": prompt}
                     ]
 
                 response = client.chat.completions.create(
@@ -226,7 +170,6 @@ if submit_button and user_prompt:
 
         full_response = st.write_stream(generate_ai_response())
 
+    # Simpan jawaban AI ke riwayat
     st.session_state.messages.append({"role": "assistant", "content": full_response})
-    
-    uploaded_file = None
     st.rerun()
