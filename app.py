@@ -1,6 +1,5 @@
 import streamlit as st
 from openai import OpenAI
-from PIL import Image
 import base64
 import io
 
@@ -11,7 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- CUSTOM CSS PREMIUM & ADVANCED ALA GEMINI ADVANCED ---
+# --- CUSTOM CSS PREMIUM UNTUK FIXED BOTTOM INPUT ALA GEMINI ---
 st.markdown("""
     <style>
     /* Mengubah background utama menjadi gelap elegan */
@@ -20,16 +19,16 @@ st.markdown("""
         color: #f8fafc;
     }
     
-    /* Mengatur area chat agar pas di tengah dan tidak terlalu mepet bawah */
+    /* Area chat diberi jarak bawah agar tidak tertutup kotak ketik */
     .main .block-container {
-        padding-top: 3rem;
-        padding-bottom: 7rem;
+        padding-top: 2rem;
+        padding-bottom: 120px;
         max-width: 750px;
     }
 
     /* Efek Gradasi Warna untuk Judul Jev-AI */
     .gradient-text {
-        font-size: 42px;
+        font-size: 38px;
         font-weight: 800;
         background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
         -webkit-background-clip: text;
@@ -41,8 +40,8 @@ st.markdown("""
     .sub-text {
         color: #94a3b8;
         text-align: center;
-        font-size: 14px;
-        margin-bottom: 30px;
+        font-size: 13px;
+        margin-bottom: 25px;
     }
 
     /* Styling Balon Chat User */
@@ -53,6 +52,7 @@ st.markdown("""
         padding: 14px !important;
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         color: #f1f5f9 !important;
+        margin-bottom: 15px !important;
     }
 
     /* Styling Balon Chat AI Assistant */
@@ -63,53 +63,70 @@ st.markdown("""
         padding: 14px !important;
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         color: #f8fafc !important;
+        margin-bottom: 15px !important;
     }
     
-    /* --- STYLING KHUSUS UNTUK TOMBOL GAMBAR DI BAWAH --- */
-    
-    /* Membuat kotak container untuk input bagian bawah */
-    [data-testid="stForm"] {
-        background-color: #111827;
-        border: 1px solid #334155;
-        border-radius: 30px;
-        padding: 5px 20px;
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    /* --- MEMBUAT KOTAK INPUT MELAYANG DI BAWAH (FIXED BOTTOM) --- */
+    div[data-testid="stForm"] {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 700px;
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-radius: 30px !important;
+        padding: 8px 15px !important;
+        box-shadow: 0 10px 25px rgb(0 0 0 / 0.5) !important;
+        z-index: 9999;
     }
-    
-    /* Sembunyikan garis bawaan input text */
-    [data-testid="stForm"] .stTextInput input {
-        border: none !important;
+
+    /* Merapikan posisi kolom di dalam form */
+    div[data-testid="stForm"] [data-testid="column"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Hilangkan border bawaan input text */
+    div[data-testid="stForm"] input {
         background-color: transparent !important;
+        border: none !important;
         color: #f8fafc !important;
-        padding-left: 0px !important;
+        padding: 10px 0px !important;
+    }
+
+    /* Hilangkan background tombol kirim agar minimalis */
+    div[data-testid="stForm"] button[type="submit"] {
+        background-color: transparent !important;
+        border: none !important;
+        color: #3b82f6 !important;
+        font-weight: bold;
+        font-size: 16px;
     }
     
-    /* Ubah tampilan tombol upload gambar jadi ikon kecil */
-    [data-testid="stForm"] .stFileUploader section {
+    /* Sembunyikan garis dan teks bawaan file uploader */
+    div[data-testid="stForm"] .stFileUploader section {
         padding: 0px !important;
         border: none !important;
         background-color: transparent !important;
     }
-    
-    /* Sembunyikan teks-teks bawaan upload file */
-    [data-testid="stForm"] .stFileUploader label,
-    [data-testid="stForm"] .stFileUploader small,
-    [data-testid="stForm"] .stFileUploader .st-emotion-cache-up8up8 {
+    div[data-testid="stForm"] .stFileUploader label,
+    div[data-testid="stForm"] .stFileUploader small,
+    div[data-testid="stForm"] .stFileUploader div[role="status"] {
         display: none !important;
     }
-    
-    /* Mengatur jarak ikon kamera agar pas di samping */
-    [data-testid="stForm"] .stFileUploader div[role="button"] {
-        font-size: 20px;
-        color: #94a3b8;
-        padding: 5px 10px;
-        background-color: transparent;
-        border: none;
-        cursor: pointer;
+    div[data-testid="stForm"] .stFileUploader div[role="button"] {
+        font-size: 24px !important;
+        color: #94a3b8 !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0px !important;
+        margin: 0px !important;
     }
 
-    /* Sembunyikan Sidebar, Header, Footer */
-    [data-testid="stSidebar"] {visibility: hidden;}
+    /* Sembunyikan Header dan Footer bawaan Streamlit */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
@@ -135,35 +152,60 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- BAGIAN BAWAH ALA GEMINI (GAMBAR DISAMPING TEKS) ---
+# --- BAGIAN BAWAH ALA GEMINI (MELAYANG DI BAWAH SCREEN) ---
 
-# Buat form agar tombol upload dan teks bisa sejajar dalam satu baris
-with st.form("gemini_form", clear_on_submit=True):
-    col1, col2 = st.columns([1, 10])
+# Form Chat yang selalu menempel di bawah
+with st.form("gemini_chat_form", clear_on_submit=True):
+    # col1 untuk tombol +, col2 untuk teks ketik, col3 untuk tombol kirim
+    c1, c2, c3 = st.columns([1, 8, 1.5])
     
-    with col1:
-        # Upload gambar dalam bentuk ikon (CSS yang ngatur)
-        uploaded_file = st.file_uploader("📷", type=["jpg", "jpeg", "png"])
+    with c1:
+        # Tombol + untuk upload gambar
+        uploaded_file = st.file_uploader("➕", type=["jpg", "jpeg", "png"])
         
-    with col2:
-        # Kotak input teks
-        user_prompt = st.text_input("", placeholder="Tanya Jev-AI di sini...", key="user_input")
+    with c2:
+        user_prompt = st.text_input("", placeholder="Tanya Jev-AI di sini...", label_visibility="collapsed")
         
-    # Tombol submit tersembunyi (bisa juga tekan enter)
-    submit_button = st.form_submit_button("Kirim", use_container_width=False)
+    with c3:
+        submit_button = st.form_submit_button("Kirim")
 
-# Cek apakah ada gambar yang sedang dipilih, tampilkan di atas kotak ketik
+# Jika ada gambar yang terpilih, tampilkan pratinjau kecil di atas kotak ketik agar user tahu
 if uploaded_file:
-    st.write("---")
-    col1, col2 = st.columns([2, 10])
-    with col1:
-        st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
-    with col2:
-        if st.button("🗑️ Hapus Gambar"):
-            uploaded_file = None
-            st.rerun()
+    st.markdown("""
+        <style>
+        .preview-box {
+            position: fixed;
+            bottom: 95px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 700px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 15px;
+            padding: 10px;
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Pratinjau Gambar melayang di atas bar chat
+    with st.container():
+        st.markdown('<div class="preview-box">', unsafe_allow_html=True)
+        col_img, col_btn = st.columns([2, 8])
+        with col_img:
+            st.image(uploaded_file, use_container_width=True)
+        with col_btn:
+            st.markdown("<p style='margin:0; font-size:12px; color:#94a3b8;'>Gambar siap dikirim</p>", unsafe_allow_html=True)
+            if st.button("Hapus Gambar"):
+                uploaded_file = None
+                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-# 6. Proses Jawaban AI saat Submit
+# 6. Proses Jawaban AI saat Tombol Kirim Ditekan
 if submit_button and user_prompt:
     
     # Simpan chat user ke riwayat
@@ -173,10 +215,8 @@ if submit_button and user_prompt:
 
     # 7. Proses Jawaban AI
     with st.chat_message("assistant"):
-        # Kita gunakan generator untuk efek streaming
         def generate_ai_response():
             try:
-                # Fungsi Base64 untuk Gambar
                 def get_base64(file):
                     return base64.b64encode(file.getvalue()).decode()
 
@@ -196,18 +236,18 @@ if submit_button and user_prompt:
                     messages_to_send = [
                         {
                             "role": "system", 
-                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan penjelasan yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
+                            "content": "Kamu adalah Jev-AI, asisten AI yang sangat cerdas, ramah, dan profesional. Berikan jawaban yang sangat jelas, rapi, dan terstruktur dalam Bahasa Indonesia."
                         },
                         {"role": "user", "content": user_prompt}
                     ]
 
-                # Panggil API NVIDIA (Llama 3.2 Vision) dengan streaming
+                # Panggil API NVIDIA dengan streaming
                 response = client.chat.completions.create(
                     model="meta/llama-3.2-11b-vision-instruct",
                     messages=messages_to_send,
                     max_tokens=1024,
                     temperature=0.7,
-                    stream=True  # Mengaktifkan streaming teks
+                    stream=True
                 )
                 
                 # Mengirim potongan teks satu per satu
@@ -218,12 +258,12 @@ if submit_button and user_prompt:
             except Exception as e:
                 yield f"Maaf, terjadi kesalahan: {str(e)}"
 
-        # Jalankan efek ngetik secara real-time di layar
+        # Jalankan efek ngetik secara real-time
         full_response = st.write_stream(generate_ai_response())
 
-    # Simpan jawaban AI ke riwayat setelah selesai mengetik
+    # Simpan jawaban AI ke riwayat
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     
-    # Hapus file upload setelah selesai proses agar tidak dobel
+    # Reset file upload dan segarkan halaman
     uploaded_file = None
     st.rerun()
