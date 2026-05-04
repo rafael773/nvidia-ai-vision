@@ -10,7 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- CUSTOM CSS PREMIUM UNTUK FIXED BOTTOM INPUT ALA GEMINI ---
+# --- CUSTOM CSS PREMIUM & AMAN ---
 st.markdown("""
     <style>
     /* Mengubah background utama menjadi gelap elegan */
@@ -19,10 +19,10 @@ st.markdown("""
         color: #f8fafc;
     }
     
-    /* Area chat diberi jarak bawah agar tidak tertutup kotak ketik */
+    /* Mengatur area chat agar pas di tengah */
     .main .block-container {
         padding-top: 2rem;
-        padding-bottom: 120px;
+        padding-bottom: 2rem;
         max-width: 750px;
     }
 
@@ -66,23 +66,16 @@ st.markdown("""
         margin-bottom: 15px !important;
     }
     
-    /* --- MEMBUAT KOTAK INPUT MELAYANG DI BAWAH (FIXED BOTTOM) --- */
+    /* Kotak input form di bawah yang menyatu */
     div[data-testid="stForm"] {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 700px;
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
-        border-radius: 30px !important;
-        padding: 8px 15px !important;
-        box-shadow: 0 10px 25px rgb(0 0 0 / 0.5) !important;
-        z-index: 9999;
+        border-radius: 25px !important;
+        padding: 5px 15px !important;
+        box-shadow: 0 4px 12px rgb(0 0 0 / 0.3) !important;
+        margin-top: 20px;
     }
 
-    /* Merapikan posisi kolom di dalam form */
     div[data-testid="stForm"] [data-testid="column"] {
         display: flex;
         align-items: center;
@@ -118,7 +111,7 @@ st.markdown("""
         display: none !important;
     }
     div[data-testid="stForm"] .stFileUploader div[role="button"] {
-        font-size: 24px !important;
+        font-size: 22px !important;
         color: #94a3b8 !important;
         background: transparent !important;
         border: none !important;
@@ -143,7 +136,7 @@ client = OpenAI(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 4. Header Utama dengan Efek Gradasi
+# 4. Header Utama
 st.markdown('<div class="gradient-text">Jev-AI Assistant</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-text">The next-gen intelligent AI powered by NVIDIA</div>', unsafe_allow_html=True)
 
@@ -152,9 +145,8 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- BAGIAN BAWAH ALA GEMINI (MELAYANG DI BAWAH SCREEN) ---
+# --- BAGIAN BAWAH UNTUK INPUT (TIDAK MELAYANG / TIDAK MENUTUPI) ---
 
-# Form Chat yang selalu menempel di bawah
 with st.form("gemini_chat_form", clear_on_submit=True):
     # col1 untuk tombol +, col2 untuk teks ketik, col3 untuk tombol kirim
     c1, c2, c3 = st.columns([1, 8, 1.5])
@@ -169,41 +161,17 @@ with st.form("gemini_chat_form", clear_on_submit=True):
     with c3:
         submit_button = st.form_submit_button("Kirim")
 
-# Jika ada gambar yang terpilih, tampilkan pratinjau kecil di atas kotak ketik agar user tahu
+# Jika ada gambar yang dipilih, pratinjau muncul di bawah kotak ketik dengan rapi
 if uploaded_file:
-    st.markdown("""
-        <style>
-        .preview-box {
-            position: fixed;
-            bottom: 95px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 700px;
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 15px;
-            padding: 10px;
-            z-index: 9998;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # Pratinjau Gambar melayang di atas bar chat
-    with st.container():
-        st.markdown('<div class="preview-box">', unsafe_allow_html=True)
-        col_img, col_btn = st.columns([2, 8])
-        with col_img:
-            st.image(uploaded_file, use_container_width=True)
-        with col_btn:
-            st.markdown("<p style='margin:0; font-size:12px; color:#94a3b8;'>Gambar siap dikirim</p>", unsafe_allow_html=True)
-            if st.button("Hapus Gambar"):
-                uploaded_file = None
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.write("---")
+    col_img, col_btn = st.columns([2, 8])
+    with col_img:
+        st.image(uploaded_file, caption="Gambar Terpilih", use_container_width=True)
+    with col_btn:
+        st.write("")
+        if st.button("🗑️ Hapus Gambar"):
+            uploaded_file = None
+            st.rerun()
 
 # 6. Proses Jawaban AI saat Tombol Kirim Ditekan
 if submit_button and user_prompt:
@@ -241,7 +209,6 @@ if submit_button and user_prompt:
                         {"role": "user", "content": user_prompt}
                     ]
 
-                # Panggil API NVIDIA dengan streaming
                 response = client.chat.completions.create(
                     model="meta/llama-3.2-11b-vision-instruct",
                     messages=messages_to_send,
@@ -250,7 +217,6 @@ if submit_button and user_prompt:
                     stream=True
                 )
                 
-                # Mengirim potongan teks satu per satu
                 for chunk in response:
                     if chunk.choices[0].delta.content is not None:
                         yield chunk.choices[0].delta.content
@@ -258,12 +224,9 @@ if submit_button and user_prompt:
             except Exception as e:
                 yield f"Maaf, terjadi kesalahan: {str(e)}"
 
-        # Jalankan efek ngetik secara real-time
         full_response = st.write_stream(generate_ai_response())
 
-    # Simpan jawaban AI ke riwayat
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     
-    # Reset file upload dan segarkan halaman
     uploaded_file = None
     st.rerun()
