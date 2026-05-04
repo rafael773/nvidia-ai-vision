@@ -73,8 +73,7 @@ st.markdown("""
         border-right: 1px solid #334155;
     }
 
-    /* Sembunyikan Header dan Footer bawaan Streamlit */
-    header {visibility: hidden;}
+    /* Sembunyikan footer bawaan Streamlit saja (TOMBOL MENU TETAP MUNCUL) */
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
@@ -95,7 +94,6 @@ with st.sidebar:
     st.markdown("<h2 style='color: #3b82f6;'>📁 Lampiran</h2>", unsafe_allow_html=True)
     st.write("Tambahkan gambar untuk dianalisis oleh AI.")
     
-    # Upload file ditaruh di sini agar tidak mengganggu kotak chat bawah
     uploaded_file = st.file_uploader("Pilih gambar...", type=["jpg", "jpeg", "png"], key="sidebar_uploader")
     
     if uploaded_file:
@@ -138,7 +136,6 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
                 def get_base64(file):
                     return base64.b64encode(file.getvalue()).decode()
 
-                # Cek apakah ada gambar yang diupload di sidebar
                 if uploaded_file:
                     img_base64 = get_base64(uploaded_file)
                     messages_to_send = [
@@ -176,6 +173,5 @@ if prompt := st.chat_input("Tanya Jev-AI di sini..."):
 
         full_response = st.write_stream(generate_ai_response())
 
-    # Simpan jawaban AI ke riwayat
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     st.rerun()
